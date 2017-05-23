@@ -36,6 +36,7 @@ class MeanEmbeddingVectorizer(object):
             for words in X
         ])
 
+
 class TfidfEmbeddingVectorizer(object):
     def __init__(self, word2vec):
         self.word2vec = word2vec
@@ -69,6 +70,7 @@ def readConfig(filename):
     js = json.loads(f.read())
     f.close()
     return js
+
 
 def jsonParsing():
     rep = {}  # define desired replacements here
@@ -147,7 +149,13 @@ def make_input():
     inputs = []
     tag_only = []
 
-    rep = {"\n": " ", "#": " ", "ㅋ": "", "ㅎ": "", "・": "", "투썸플레이스": "", "twosomeplace": "", "투썸": ""}  # define desired replacements here
+    # TRANSLATION
+    rep = {"\n": " ", "#": " ", "ㅋ": "", "ㅎ": "", "・": "", "투썸플레이스": "", "twosomeplace": "", "투썸": "", \
+            "couple": "커플", "love": "러브", "daily": "일상", "fashion": "패션", "photo": "사진", "peace": "평화", \
+            "happy": "행복", "birthday": "생일", "present": "선물", "sweet": "달콤한", "yummy": "맛있어", "Exam": "시험", \
+            "exam": "시험", "study": "공부", "friend": "친구", "library": "도서관", "travel": "여행", "brother": "형제", \
+            "sister": "자매", "family": "가족"
+    }  # define desired replacements here
 
     # use these three lines to do the replacement
     rep = dict((re.escape(k), v) for k, v in rep.items())
@@ -165,12 +173,14 @@ def make_input():
 
                 if ('caption' in d) and len(d['caption']) > 0:
                     text = pattern.sub(lambda m: rep[re.escape(m.group(0))], d['caption'])
+
                     refined = ""
                     for c in text:
                         if c.isalnum() and not c.isdigit():
                             refined += c
                         elif len(refined) > 0 and refined[-1] != " ":
                             refined += " "
+
                     # print (refined)
                     inputs.append(refined)
 
@@ -182,7 +192,6 @@ if __name__ == "__main__":
 
     w2v_model = Word2Vec.load('./ko.bin')
     w2v = dict(zip(w2v_model.wv.index2word, w2v_model.wv.syn0))
-    test = MeanEmbeddingVectorizer(w2v)
 
     etree_w2v = Pipeline([
         ("word2vec vectorizer", MeanEmbeddingVectorizer(w2v)),
@@ -193,19 +202,19 @@ if __name__ == "__main__":
         ("extra trees", ExtraTreesClassifier(n_estimators=200))])
 
 
-    # Fit for classifier  
-    X = [['시험', '기간', '공부', '책', '논문', '연구', '과제', '학점', '종강', '도서관', '학기', '오빠'],
-         ['러브', '데이트', '커플', '신랑', '신부', '하트', '선물  ', '오빠'],
+    # Fit for classifier
+    X = [['시험', '기간', '공부', '책', '논문', '연구', '과제', '학점', '도서관', '학기'],
+         ['러브', '데이트', '커플', '신랑', '신부', '하트', '선물'],
          ['혼자', '혼', '홀로', '잉여', '고독', '공허', '직장인', '일기'],
-         ['친', '너', '친구', '수다', '우정', '죽마고우', '불알', '멤버', '합체', '브로', '학년'],
-         ['모임', '가족', '파티', '생일', '계', '팟', '형', '맥주', '수다', '만남', '동창', '셋'],
+         ['친', '너', '친구', '수다', '우정', '죽마고우', '불알', '멤버', '합체', '브로', '학년', '모임', \
+          '가족', '파티', '계', '팟', '형', '맥주', '만남', '동창', '셋'],
          ['베이비', '아가', '육아', '맘', '아기', '임산부', '아이', '아들', '딸', '엄마'],
          ['이벤트', '오픈', '예정', '할인', '지하', '뒷편', '샵', '층', '무료', '몽블랑', '카카오', '아디다스', \
-          '슈퍼스타'],
-         ['본사', '직원', '사장님', '매장', '메뉴', '장님']]
+          '슈퍼스타']]
 
-    y = ['공부', '데이트', '혼자', '친구랑', '모임', '아이랑 놀기', '광고', '매장이야기']
+    y = ['공부', '데이트', '혼자', '소셜', '가족', '광고']
 
+    ### THIS is for 1-dim array of X data ###
     keywords = []
     for i in range(len(X)):
         for j in range(len(X[i])):
@@ -258,17 +267,32 @@ if __name__ == "__main__":
             refined.append(after_stop)
 
     ### Replacement for word2vec dictionary ###
+    ### Replaced words MUST be a word in word2vec Model ###
     for tag in refined:
         for i in range(len(tag)):
             if tag[i] == '럽': tag[i] = '러브'
-            if tag[i] == '예랑': tag[i] = '예비신랑'
-            if tag[i] == '예신': tag[i] = '예비신부'
-            if tag[i] == '남친': tag[i] = '남자친구'
-            if tag[i] == '여친': tag[i] = '여자친구'
+            if tag[i] == '예랑': tag[i] = '신랑'
+            if tag[i] == '예신': tag[i] = '신부'
+            if tag[i] == '남친': tag[i] = '애인'
+            if tag[i] == '여친': tag[i] = '애인'
 
     outputs1 = etree_w2v.predict(refined)
+    outputs1_prob = etree_w2v.predict_proba(refined)
+
+    ### Binary classification for UNCLASSIFIED class ###
+    for i in range(len(refined)):
+        flag = 0
+        for tag in refined[i]:
+            if tag in keywords:
+                flag = 1
+                break
+
+        if flag == 0:
+            outputs1[i] = '미분류'
+
     outputs2 = etree_w2v_tfidf.predict(refined)
 
     for i in range(len(refined)):
-        # print ((refined[i], outputs1[i], outputs2[i]))
-        print ((refined[i], outputs1[i]))
+        #print ((refined[i], outputs1[i], outputs2[i]))
+        print ((refined[i], outputs1[i]), outputs1_prob[i])
+
