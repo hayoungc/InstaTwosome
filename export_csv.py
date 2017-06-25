@@ -11,8 +11,9 @@ STUDY = 0
 SOCIAL = 1
 WINDOW_SIZE = 5    # Minute
 WINDOW_LEN = 60 * WINDOW_SIZE   # CUT dataX by unit of WINDOW
+PADDING = 0.01
 
-observation = [ [1496383380000, 10, {'M21':STUDY, 'M25':STUDY, 'M22':STUDY}],   # 6/2 15:03
+observation = [ [1496383360000, 15, {'M21':STUDY, 'M25':STUDY, 'M22':STUDY}],   # 6/2 15:03
                 [1496557950000, 20, {'M21':STUDY, 'M25':STUDY, 'M26':STUDY}],# 6/4 15:32
                 [1496661360000, 18, {'M21':STUDY, 'M22':SOCIAL, 'M11':STUDY, 'M26':SOCIAL}],# 6/5 20:16
                 [1496754300000, 16, {'M11':STUDY, 'M25':STUDY, 'M12':STUDY,
@@ -20,9 +21,11 @@ observation = [ [1496383380000, 10, {'M21':STUDY, 'M25':STUDY, 'M22':STUDY}],   
                 [1496811240000, 20, {'M12':SOCIAL, 'M22':SOCIAL}], # 6/7 13:54
                 [1496812740000, 40, {'M15':SOCIAL}], # 6/7 14:19
                 [1496818440000, 20, {'M21':STUDY, 'M22':STUDY}], # 6/7 15:54
-                [1496983140000, 14, {'M12':SOCIAL, 'M25':STUDY, 'M15':STUDY}], # 6/9 13:39
-                [1496988540000, 14, {'M11':STUDY, 'M26':SOCIAL, 'M15':STUDY, 'M13':STUDY}], # 6/9 15:09
-                [1496989440000, 14, {'M11':STUDY, 'M22':STUDY, 'M15':STUDY, 'M13':STUDY}]    # 6/9 15:24
+                [1496983140000, 15, {'M12':SOCIAL, 'M25':STUDY, 'M15':STUDY}], # 6/9 13:39
+                [1496988540000, 15, {'M11':STUDY, 'M26':SOCIAL, 'M15':STUDY, 'M13':STUDY}], # 6/9 15:09
+                [1496989440000, 15, {'M11':STUDY, 'M22':STUDY, 'M15':STUDY, 'M13':STUDY}],  # 6/9 15:24
+                [1497241680000, 15, {'M21':STUDY, 'M11':STUDY, 'M26':STUDY}],  # 6/12 13:28
+                [1497263200000, 20, {'M26':SOCIAL}] # 6/12 19:30
                 ]
 
 sorted(observation, key=itemgetter(0))
@@ -55,7 +58,7 @@ def create_dataset():
             temp_value = dict.fromkeys(list(observation[obs_index][2].keys()))
 
             for sensor in sensors:
-                temp_value[sensor] = [[observation[obs_index][0], 0.5]]
+                temp_value[sensor] = [[observation[obs_index][0], PADDING]]
 
             for d in doc:
                 leftBound = observation[obs_index][0]
@@ -72,7 +75,7 @@ def create_dataset():
 
                 if d['timestamp'] > rightBound:
                     for sensor in sensors:
-                        temp_value[sensor].append([rightBound, 0.5])
+                        temp_value[sensor].append([rightBound, PADDING])
 
                     # SAVE temp_value to raw_dataX, raw_dataY
                     for i in range(len(sensors)):
@@ -91,7 +94,7 @@ def create_dataset():
                     sensors = list(observation[obs_index][2].keys())
                     temp_value = dict.fromkeys(list(observation[obs_index][2].keys()))
                     for sensor in sensors:
-                        temp_value[sensor] = [[observation[obs_index][0], 0.5]]
+                        temp_value[sensor] = [[observation[obs_index][0], PADDING]]
 
                     continue
 
@@ -124,7 +127,7 @@ def refine_dataset(raw_dataX, raw_dataY, WINDOW_LEN):
 
             temp.append(dataset[i][1])
             if num_pad >= 1:
-                temp += num_pad * [0.5] # For padding EMPTY time-series
+                temp += num_pad * [PADDING] # For padding EMPTY time-series
             # else:
             #     print(t1, t2)
 

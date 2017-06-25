@@ -154,16 +154,16 @@ def make_input():
             "couple": "커플", "love": "러브", "daily": "일상", "fashion": "패션", "photo": "사진", "peace": "평화", \
             "happy": "행복", "birthday": "생일", "present": "선물", "sweet": "달콤한", "yummy": "맛있어", "Exam": "시험", \
             "exam": "시험", "study": "공부", "friend": "친구", "library": "도서관", "travel": "여행", "brother": "형제", \
-            "sister": "자매", "family": "가족"
+            "sister": "자매", "family": "가족", "ootd": "패션", "dailylook": "데일리룩", "fashion": "패션"
     }  # define desired replacements here
 
     # use these three lines to do the replacement
     rep = dict((re.escape(k), v) for k, v in rep.items())
     pattern = re.compile("|".join(rep.keys()))
 
-    for root, dirs, files in os.walk('./data/'):
+    for root, dirs, files in os.walk('./json/'):
         for fname in files:
-            with io.open('./data/' + fname, encoding="utf-8") as infile:
+            with io.open('./json/' + fname, encoding="utf-8") as infile:
                 data = json.load(infile)
 
             for d in data:
@@ -203,14 +203,21 @@ if __name__ == "__main__":
 
 
     # Fit for classifier
-    X = [['시험', '기간', '공부', '책', '논문', '연구', '과제', '학점', '도서관', '학기'],
-         ['러브', '데이트', '커플', '신랑', '신부', '하트', '선물'],
-         ['혼자', '혼', '홀로', '잉여', '고독', '공허', '직장인', '일기'],
-         ['친', '너', '친구', '수다', '우정', '죽마고우', '불알', '멤버', '합체', '브로', '학년', '모임', \
-          '가족', '파티', '계', '팟', '형', '맥주', '만남', '동창', '셋'],
-         ['베이비', '아가', '육아', '맘', '아기', '임산부', '아이', '아들', '딸', '엄마'],
-         ['이벤트', '오픈', '예정', '할인', '지하', '뒷편', '샵', '층', '무료', '몽블랑', '카카오', '아디다스', \
-          '슈퍼스타']]
+    # X = [['시험', '기간', '공부', '책', '논문', '연구', '과제', '학점', '도서관', '학기'],
+    #      ['러브', '데이트', '커플', '신랑', '신부', '하트', '선물'],
+    #      ['혼자', '혼', '홀로', '잉여', '고독', '공허', '직장인', '일기'],
+    #      ['친', '너', '친구', '수다', '우정', '죽마고우', '불알', '멤버', '합체', '브로', '학년', '모임', \
+    #       '가족', '파티', '계', '팟', '형', '맥주', '만남', '동창', '셋'],
+    #      ['베이비', '아가', '육아', '맘', '아기', '임산부', '아이', '아들', '딸', '엄마'],
+    #      ['이벤트', '오픈', '예정', '할인', '지하', '뒷편', '샵', '층', '무료', '몽블랑', '카카오', '아디다스', \
+    #       '슈퍼스타']]
+
+    X = [['시험', '기간', '독서', '과제', '책', '공부', '영어'],
+         ['러브', '데이트', '사랑', '커플'],
+         ['패션', '데일리룩', '여유', '혼자'],
+         ['친구', '친', '수다', '맥주', '불금', '우정'],
+         ['육아', '딸', '가족', '맘'],
+         ['아디다스']]
 
     y = ['공부', '데이트', '혼자', '소셜', '가족', '광고']
 
@@ -237,7 +244,11 @@ if __name__ == "__main__":
     etree_w2v_tfidf.fit(X, y)
 
     caption, tag_only = make_input()
-    # print (inputs)
+    # print (tag_only)
+    f = open("./data/tags.txt", "w", encoding="utf-8")
+    for post in tag_only:
+        f.write(post+"\n")
+    f.close()
 
     from konlpy.tag import Twitter
     t = Twitter()
@@ -273,11 +284,21 @@ if __name__ == "__main__":
             if tag[i] == '럽': tag[i] = '러브'
             if tag[i] == '예랑': tag[i] = '신랑'
             if tag[i] == '예신': tag[i] = '신부'
+
+
             if tag[i] == '남친': tag[i] = '애인'
             if tag[i] == '여친': tag[i] = '애인'
+            if tag[i] == '중간고사': tag[i] = '시험'
+            if tag[i] == '기말고사': tag[i] = '시험'
+            if tag[i] == '오오티디': tag[i] = '패션'
+            if tag[i] == '북': tag[i] = '책'
+            if tag[i] == '혼': tag[i] = '혼자'
 
     outputs1 = etree_w2v.predict(refined)
     outputs1_prob = etree_w2v.predict_proba(refined)
+
+    outputs2 = etree_w2v_tfidf.predict(refined)
+
 
     ### Binary classification for UNCLASSIFIED class ###
     for i in range(len(refined)):
@@ -288,11 +309,10 @@ if __name__ == "__main__":
                 break
 
         if flag == 0:
-            outputs1[i] = '미분류'
-
-    outputs2 = etree_w2v_tfidf.predict(refined)
+            outputs1[i] = "미분류"
+            outputs2[i] = "미분류"
 
     for i in range(len(refined)):
         #print ((refined[i], outputs1[i], outputs2[i]))
-        print ((refined[i], outputs1[i]), outputs1_prob[i])
+        print ((refined[i], outputs2[i]), outputs1_prob[i])
 
